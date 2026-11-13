@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TAWAR — the agent that haggles for you</title>
+<meta name="description" content="Tawar is an autonomous price-negotiation agent. It haggles round by round on your behalf and cannot overspend your limit, because the ceiling is enforced by code.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="demoRibbon" class="demo-ribbon" hidden>
+  Demo data — sample sessions shown because the live engine feed is not connected yet.
+</div>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-main">
+      <div class="brand-row">
+        <span class="brand-mark">T</span>
+        <span class="brand-name">TAWAR</span>
+        <span class="brand-chip">SERV Hackathon 02 · Kite track</span>
+      </div>
+      <h1>The agent that haggles for you, and <span class="hl">cannot overspend</span> your limit.</h1>
+      <p class="promise">You name the item, the target, and a hard ceiling. Tawar negotiates round by round, shows its reasoning for every move, and stops at your ceiling, because the limit is enforced by code, not by the model's good intentions.</p>
+      <div class="hero-stats" id="heroStats" aria-label="Track record">
+        <div class="hstat">
+          <span class="hstat-val" id="hsSaved">—</span>
+          <span class="hstat-label" id="hsSavedLabel">saved in live engine runs</span>
+        </div>
+        <div class="hstat">
+          <span class="hstat-val" id="hsDeals">—</span>
+          <span class="hstat-label">deals closed, every one under its ceiling</span>
+        </div>
+        <div class="hstat">
+          <span class="hstat-val">0</span>
+          <span class="hstat-label">deals ever closed above a ceiling</span>
+        </div>
+      </div>
+    </div>
+
+    <aside class="id-card" aria-label="Agent identity card">
+      <details id="idDetails">
+        <summary class="id-summary">
+          <span class="id-card-title">Agent identity card</span>
+          <span class="id-card-status" id="idStatus"><span class="dot"></span><span id="idStatusText">verified</span></span>
+          <span class="id-compact" id="idCompact">Tawar · ceiling —</span>
+        </summary>
+        <div class="id-body">
+          <dl class="id-fields">
+            <div><dt>Agent</dt><dd>Tawar <span class="mono dim">tawar.agent</span></dd></div>
+            <div><dt>Agent ID</dt><dd id="idAgentId" class="mono">tawar.agent</dd></div>
+            <div><dt>Owner</dt><dd>You, the mandate holder</dd></div>
+            <div><dt>Mandate</dt><dd>Negotiate only. Never pay above the ceiling.</dd></div>
+            <div><dt>Ceiling</dt><dd id="idCeiling" class="id-ceiling">—</dd></div>
+            <div id="rowExpires" hidden><dt>Mandate expires</dt><dd id="idExpires">—</dd></div>
+            <div id="rowHash" hidden><dt>Mandate hash</dt><dd id="idHash" class="mono">—</dd></div>
+            <div><dt>Kill switch</dt><dd id="idKill">Owner can halt the session between any two rounds <span class="kill-note" id="killNote">· active in live sessions</span></dd></div>
+          </dl>
+          <div class="leash" aria-hidden="true">
+            <span class="leash-node">OWNER</span>
+            <span class="leash-line"><span class="leash-lock">ceiling lock</span></span>
+            <span class="leash-node agent">AGENT</span>
+          </div>
+          <p class="leash-note">The leash stays in the owner's hand. The agent pulls, the ceiling holds.</p>
+        </div>
+      </details>
+    </aside>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="mandate card" aria-label="Mandate">
+    <div class="mandate-head">
+      <div>
+        <div class="eyebrow">The mandate</div>
+        <h2 id="itemName">Loading session…</h2>
+        <p class="versus" id="versusLine">Tawar vs —</p>
+        <p class="lang-row">
+          <span class="lang-chip" id="langChip">EN</span>
+          <span class="cur-chip" id="curChip">IDR · Rp</span>
+          <span class="prov-badge" id="provBadge" hidden></span>
+          <span class="lang-note" id="langNote" hidden>Local market mode — Bahasa Indonesia. The agent haggles in the language of the market.</span>
+        </p>
+      </div>
+      <div class="mandate-nums">
+        <div class="mnum"><span class="mlabel">List price</span><span class="mval" id="numList">—</span></div>
+        <div class="mnum"><span class="mlabel">Target</span><span class="mval teal" id="numTarget">—</span></div>
+        <div class="mnum"><span class="mlabel">Ceiling</span><span class="mval ceiling-red" id="numCeiling">—</span></div>
+        <div class="mnum"><span class="mlabel">Last price</span><span class="mval" id="numCurrent">—</span><span class="mwho" id="numCurrentWho"></span></div>
+        <div class="mnum"><span class="mlabel">Saving if closed now</span><span class="mval green" id="numSaving">—</span></div>
+        <div class="mnum"><span class="mlabel">Headroom to ceiling</span><span class="mval" id="numHeadroom">—</span></div>
+      </div>
+    </div>
+    <div class="ladder" id="ladder" role="img" aria-label="Price ladder zoomed to the negotiation range, with markers for target, ceiling, and the current price">
+      <span class="ladder-break" aria-hidden="true">//</span>
+      <div class="ladder-track"></div>
+      <div class="ladder-danger" id="ladderDanger"></div>
+      <div class="ladder-marker ceiling" id="markCeiling"><span class="mark-flag flag-above">CEILING <b id="ceilingVal"></b></span></div>
+      <div class="ladder-marker target" id="markTarget"><span class="mark-flag flag-below">TARGET <b id="targetVal"></b></span></div>
+      <div class="ladder-marker current" id="markCurrent"><span class="current-pill" id="currentFlag">—</span><span class="current-pin" aria-hidden="true"></span></div>
+      <span class="ladder-end left" id="ladderMin">—</span>
+      <span class="ladder-end right" id="ladderMax">—</span>
+    </div>
+    <p class="ladder-note">Everything past the ceiling line is the red zone. Deals can be proposed there by the model, they can never close there. Ladder is zoomed to the negotiation range.</p>
+  </section>
+
+  <section class="live card" aria-label="Run it live">
+    <div class="live-head">
+      <div>
+        <div class="eyebrow">Live engine</div>
+        <h3>Run it live</h3>
+      </div>
+      <span class="live-badge" id="liveBadge">checking backend…</span>
+    </div>
+    <form id="liveForm" class="live-form">
+      <fieldset id="liveFieldset" disabled>
+        <label class="lf"><span>Item</span><input type="text" id="lfItem" placeholder="Secondhand iPhone 12 128GB" autocomplete="off"></label>
+        <label class="lf"><span>List price</span><input type="number" id="lfList" min="1" step="1" value="450" required></label>
+        <label class="lf"><span>Target</span><input type="number" id="lfTarget" min="1" step="1" value="360" required></label>
+        <label class="lf"><span>Ceiling (hard cap)</span><input type="number" id="lfCeiling" min="1" step="1" value="390" required></label>
+        <label class="lf"><span>Seller persona</span>
+          <select id="lfSeller">
+            <option value="luluh" selected>Bu Luluh · flexible</option>
+            <option value="keras">Pak Keras · stubborn</option>
+            <option value="kepepet">Mas Kepepet · deadline</option>
+          </select>
+        </label>
+        <label class="lf"><span>Language</span>
+          <select id="lfLang">
+            <option value="en" selected>English</option>
+            <option value="id">Bahasa Indonesia</option>
+          </select>
+        </label>
+        <label class="lf"><span>Currency</span>
+          <select id="lfCurrency">
+            <option value="USD" selected>USD · $</option>
+            <option value="IDR">IDR · Rp</option>
+          </select>
+        </label>
+        <div class="lf lf-action"><button type="submit" class="btn-play" id="liveRunBtn">Start negotiation</button></div>
+      </fieldset>
+    </form>
+    <p class="live-note" id="liveNote">Live runs need the local engine — clone the repo and start server.py. Replays below are real recorded sessions.</p>
+    <p class="live-error" id="liveError" hidden></p>
+  </section>
+
+  <section class="picker" aria-label="Pick a seller persona">
+    <div class="picker-head">
+      <h3>Pick your seller</h3>
+      <p>Three simulated sellers, three very different fights. Same mandate, same ceiling.</p>
+    </div>
+    <div class="persona-grid" id="personaGrid">
+      <button type="button" class="persona" data-persona="keras">
+        <span class="persona-name">Pak Keras</span>
+        <span class="persona-tag">Keras · the stubborn one</span>
+        <span class="persona-desc">Tiny concessions, "harga pas", respects only firm buyers. The hardest table in the market — bring patience.</span>
+        <span class="persona-lang">ID · Local market mode</span>
+      </button>
+      <button type="button" class="persona active" data-persona="luluh">
+        <span class="persona-name">Bu Luluh</span>
+        <span class="persona-tag">Luluh · the flexible one</span>
+        <span class="persona-desc">Emotional and fair. Concedes in real steps when the buyer is polite, has a story, and does not rush her.</span>
+        <span class="persona-lang">EN · English</span>
+      </button>
+      <button type="button" class="persona" data-persona="kepepet">
+        <span class="persona-name">Mas Kepepet</span>
+        <span class="persona-tag">Kepepet · the deadline one</span>
+        <span class="persona-desc">Needs the money tonight for rent. Starts stubborn, folds fast once time starts working against him.</span>
+        <span class="persona-lang">ID · Local market mode</span>
+      </button>
+    </div>
+    <div class="replay-bar">
+      <button type="button" id="btnPlay" class="btn-play">Pause</button>
+      <button type="button" id="btnRestart" class="btn-ghost">Restart</button>
+      <button type="button" id="btnSkip" class="btn-ghost">Skip to result</button>
+      <button type="button" id="btnEnforcement" class="btn-ghost" hidden>Enforcement demo</button>
+      <button type="button" id="btnHalt" class="btn-halt" hidden>Halt session</button>
+      <label class="speed-label" for="speedSel">Speed</label>
+      <select id="speedSel" class="speed-sel">
+        <option value="1">1×</option>
+        <option value="2" selected>2×</option>
+        <option value="4">4×</option>
+      </select>
+      <label class="follow-toggle"><input type="checkbox" id="followToggle" checked> Follow</label>
+      <span class="progress" id="progressLabel">Round 0 of 0</span>
+    </div>
+  </section>
+
+  <section class="arena card" aria-label="Negotiation arena">
+    <div class="arena-head">
+      <span class="side-label buyer-side">TAWAR · your agent</span>
+      <span class="arena-title">The arena</span>
+      <span class="side-label seller-side" id="sellerSideLabel">the seller</span>
+    </div>
+    <div class="transcript" id="transcript"></div>
+    <div class="integrity" id="integrityBar" hidden>
+      <span class="integrity-label"><strong>Transcript integrity</strong> · hash-chained</span>
+      <button type="button" class="btn-ghost small" id="btnVerify">Verify</button>
+      <span class="integrity-result" id="integrityResult"></span>
+    </div>
+  </section>
+
+  <section class="result" id="resultBanner" hidden></section>
+
+  <section class="ledger card" aria-label="Savings ledger">
+    <div class="ledger-head">
+      <div>
+        <div class="eyebrow">Savings ledger</div>
+        <h3>Every session, on the record</h3>
+      </div>
+      <div class="ledger-total">
+        <span class="mlabel">Total saved so far</span>
+        <span class="ledger-sum" id="ledgerSum">—</span>
+      </div>
+    </div>
+    <p class="revenue-line" id="revenueLine"></p>
+    <div class="ledger-rows" id="ledgerRows"></div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <p><strong>How this demo works.</strong> The sellers are simulated agents (three personas with hidden floor prices), because Tawar never touches real money or real marketplaces in a demo. The buyer negotiates with SERV Reasoning, and its ceiling is enforced by a separate code module that re-checks every proposed deal before it can close. The model can agree to anything, only the code can say yes to a payment.</p>
+  <p class="foot-line">TAWAR · built with SERV Reasoning for SERV Hackathon 02, Track Kite (verifiable agent identity + controlled spending limits).</p>
+</footer>
+
+<script src="sample-sessions.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
