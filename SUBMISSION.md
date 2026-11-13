@@ -1,0 +1,40 @@
+# TAWAR — SERV Hackathon 02 Submission (draft answers)
+
+- **Project name:** Tawar
+- **Track:** 02 — Kite
+- **Repo link:** [TO FILL]
+- **Demo link:** https://muse.ai/s/tawar-dxo72jmrc23xz/-sfr57wfZdWhjLK_1gMtopgQ7SS1-Z77LVKLZmh0pi8
+- **X post link:** [TO FILL]
+
+## Short description (60 words max)
+
+Tawar is an autonomous negotiation agent for online marketplaces. You name the item, a target price, and a hard ceiling. Tawar haggles round by round with SERV Reasoning, shows the reasoning behind every move, and cannot close above your ceiling, because its mandate is signed, its transcript is hash-chained, and the limit is enforced by code, not by the model.
+
+## What it does
+
+Tawar negotiates a purchase on your behalf. You give it a mandate: an item, a target price, and a hard spending ceiling. It then haggles with the seller in rounds, opening at your target, conceding in shrinking steps, holding when the seller gives nothing, and walking away when the gap cannot close inside the mandate. Every offer comes with a short reasoning trace, so the owner can audit each move. When a session ends, the outcome, deal or no deal, is written to a savings ledger with the list price, the final price, and the amount saved.
+
+The Kite idea is the product's spine. The agent holds a persistent Ed25519 keypair, and before round 1 the engine signs the mandate with it: the mandate object (item, prices, currency, language, issue and expiry timestamps, agent id `tawar.agent`, public key) is hashed with sha256 and signed, and verification rejects any mandate tampered with after signing, which is unit-tested. The arena's identity card shows the agent, the owner, the mandate (negotiate only), the ceiling, the kill switch, and the public-key fingerprint. Every event in the transcript is hash-chained to the previous one, anchored in the signed mandate hash, and the arena's Verify button recomputes the chain in the browser. The ceiling itself is a hard system invariant, not an instruction the model can drift away from: offers above it are clamped, a separate enforcement function re-validates every closing price and refuses any deal above the ceiling, even one the model agreed to, and the ceiling never appears in anything the seller side can see, which a unit test asserts across all personas, currencies, and languages. The simulated sellers are also held to code-level rules: each persona's per-reply concession is capped (Keras 5%, Luluh 35%, Kepepet 60% of the remaining gap to its floor), and a real session on record shows a `seller_concession_capped` enforcement event where the engine limited a seller's drop. The owner can halt a session between rounds with a kill switch.
+
+One honest gap: there is still no live blocked_by_cap transcript, because the buyer held inside its mandate in every recorded run, so the refusal path is proven by unit tests (over-ceiling deals refused, at-ceiling allowed) and a live adversarial capture (`python3 src/engine.py --seller keras --currency USD --lang en`, against the seller whose hidden floor sits above the ceiling) can be reproduced with that command.
+
+In live runs against the real SERV API, the hero session signed its mandate, followed a written strategy plan, and closed a USD deal at $390 on a $450 listing after 8 rounds (saved $60 against a $390 ceiling; 19,084 tokens across 16 SERV calls). An earlier USD run closed at $375 (saved $75). In Local Market Mode, Tawar closed an IDR deal at Rp3.650.000 on a Rp4.500.000 listing (saved Rp850.000), negotiating in Bahasa Indonesia. It also held at target and closed nothing against a seller who would not come near the mandate. All twelve sessions, including the no-deals, are in the repo's ledger and transcripts: 4 closed deals, $135 saved in USD and Rp1.450.000 saved in IDR.
+
+## How it uses SERV Reasoning
+
+The buyer agent runs on serv-pro. Each turn it receives the full transcript, its mandate, and the currently active strategy plan, and returns strict JSON: an offer, the message to the seller, a move type (open, concede, hold, bundle, deadline, walk_away, accept), and an English reasoning trace tied to the numbers. Its prompt encodes haggling discipline: shrinking concessions, final-round restraint, and the rule that the ceiling is an emergency boundary, never a closing tool. A separate strategy layer, also serv-pro, writes a written plan before round 1 and re-plans mid-session when the seller deviates: a single concession covering at least half the remaining gap, or three straight replies with no concession, triggers a replan, and the active plan is injected into every buyer prompt. The three simulated sellers run on serv-mini, each with a hidden floor price and a distinct persona, so the reasoning has something real to push against. The arena front end exists to make this reasoning visible: judges watch each offer land with the trace that produced it.
+
+## What was built during the hackathon
+
+Everything. The negotiation engine (state machine, code-level ceiling enforcement, kill switch, append-only session transcripts, savings ledger), Ed25519-signed mandates with a persistent agent key, hash-chained transcripts with in-browser verification, the strategy layer (serv-pro plans and deviation-triggered replans), code-capped seller concessions, the parameterized buyer, strategy, and seller prompts, the robustness layer that validates and repairs model JSON, multi-currency support (USD headline demo, IDR local-market mode), bilingual negotiation (English, plus Bahasa Indonesia local-market mode), the live-run server (`server.py`, with a working mandate form and halt endpoint), and the arena: a framework-free static page that replays sessions round by round with a price ladder showing list, target, ceiling, and the red zone past it. Twelve live sessions were run against the SERV API and are committed as transcripts and ledger rows.
+
+## Demo instructions for judges
+
+1. Open the arena (demo link above). The latest real session loads automatically: the hero session, an 8-round USD negotiation under a signed mandate that closes at $390 on a $450 listing.
+2. Press play and watch the negotiation replay round by round. Note the price ladder at the top: list price, target, ceiling, and the hatched red zone past the ceiling where deals can be proposed by a model but can never close. Note the strategy plan that opens the session; every buyer move follows it.
+3. Check the integrity bar and press Verify. The arena recomputes the transcript's hash chain in your browser and confirms it against the signed mandate.
+4. Switch sellers with the picker. Bu Luluh is the hero session above. Pak Keras has a floor above the ceiling, and the agent holds at target for all 8 rounds and closes nothing instead of chasing. Mas Kepepet is the Local Market Mode session, negotiated in Bahasa Indonesia, closing at Rp3.650.000 for Rp850.000 saved.
+5. For the enforcement layer in action, open the enforcement demo session (`data/sessions/20261113-004721-luluh-en-usd.json`, via the arena's `?session=` parameter): it contains a strategy plan, two replans (a no-concession streak, then a sudden large concession), and a real `seller_concession_capped` event where the engine limited the seller's drop to $398 when she tried to concede to $390 in one reply.
+6. Watch the buyer reasoning trace under each blue bubble; that is SERV Reasoning, shown rather than summarized.
+7. Scroll to the savings ledger. Across the twelve recorded sessions it totals $135 saved in USD and Rp1.450.000 saved in IDR on four closed deals, and it keeps the no-deal sessions on the record.
+8. Optional, from the repo: run `python3 server.py` and use the arena's live form to start your own negotiation and halt it mid-run, or run a session directly with `python3 src/engine.py --seller luluh --currency USD --lang en` and see the transcript and ledger update. On the static hosted demo the form disables itself with a note, because live runs spend real SERV credits.
