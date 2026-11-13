@@ -2,7 +2,7 @@
 
 - **Project name:** Tawar
 - **Track:** 02 — Kite
-- **Repo link:** [TO FILL]
+- **Repo link:** https://github.com/ismaonezain/tawar
 - **Demo link:** https://muse.ai/s/tawar-dxo72jmrc23xz/-sfr57wfZdWhjLK_1gMtopgQ7SS1-Z77LVKLZmh0pi8
 - **X post link:** [TO FILL]
 
