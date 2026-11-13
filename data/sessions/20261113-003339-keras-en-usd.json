@@ -1,0 +1,194 @@
+{
+  "session_id": "20261113-003339-keras-en-usd",
+  "started_at": "2026-11-13T00:33:39+00:00",
+  "lang": "en",
+  "currency": "USD",
+  "item": "Secondhand iPhone 12 128GB",
+  "seller_key": "keras",
+  "seller_name": "Pak Keras",
+  "list_idr": 450,
+  "target_idr": 360,
+  "ceiling_idr": 390,
+  "max_rounds": 8,
+  "buyer_model": "serv-pro",
+  "seller_model": "serv-mini",
+  "events": [
+    {
+      "type": "session_start",
+      "seller_floor_hidden": true,
+      "note": "seller floor and buyer ceiling are never shared across sides",
+      "at": "2026-11-13T00:33:39+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 1,
+      "offer_idr": 360,
+      "requested_offer_idr": 360,
+      "message": "Hi! I can do $360 for the iPhone 12 128GB if it's fully functional and ready to meet. Let me know if that works for you.",
+      "reasoning": "List 450, ask 450, target 360, opening at target in round 1.",
+      "move": "open",
+      "at": "2026-11-13T00:33:42+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 1,
+      "price_idr": 447,
+      "message": "No, too low. I can do $447.",
+      "mood": "Brief, firm, slightly impatient",
+      "at": "2026-11-13T00:33:44+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 2,
+      "offer_idr": 360,
+      "requested_offer_idr": 360,
+      "message": "Thanks for the reply. I’m at $360 if it’s fully functional and ready to meet. If that works, I can move quickly.",
+      "reasoning": "Ask 447 vs target 360; early round; seller made no concession. Hold at target.",
+      "move": "hold",
+      "at": "2026-11-13T00:33:46+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 2,
+      "price_idr": 447,
+      "message": "Still too low. 447 is fair for a fully functional phone and quick meet.",
+      "mood": "Brief, firm, slightly impatient",
+      "at": "2026-11-13T00:33:48+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 3,
+      "offer_idr": 360,
+      "requested_offer_idr": 360,
+      "message": "Thanks—I understand your price, but I’m still at $360 if it’s fully functional and ready to meet. If that works, I can make it easy and move quickly.",
+      "reasoning": "Ask 447 vs target 360; seller has not conceded across two rounds. Early/mid negotiation with 5 rounds left, so hold at target and avoid bidding against ourselves.",
+      "move": "hold",
+      "at": "2026-11-13T00:33:51+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 3,
+      "price_idr": 447,
+      "message": "Still too low. 447 is fair.",
+      "mood": "Brief, firm, slightly impatient",
+      "at": "2026-11-13T00:33:53+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 4,
+      "offer_idr": 360,
+      "requested_offer_idr": 360,
+      "message": "Thanks—I understand. I’m still at $360 if it’s fully functional and ready to meet. If that works, I can make the pickup easy.",
+      "reasoning": "Ask unchanged at 447, target is 360, round 4 of 8. Hold once more; no concession justified with no seller movement.",
+      "move": "hold",
+      "at": "2026-11-13T00:33:55+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 4,
+      "price_idr": 447,
+      "message": "Still too low. 447 is fair.",
+      "mood": "Brief, firm, slightly impatient",
+      "at": "2026-11-13T00:33:57+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 5,
+      "offer_idr": 360,
+      "requested_offer_idr": 360,
+      "message": "Thanks—I understand your position. I’m still at $360 if it’s fully functional and ready to meet, and I can make pickup easy.",
+      "reasoning": "Current ask 447 vs target 360; seller has made no concession across 4 rounds. With 3 rounds left, hold rather than raise into a large gap.",
+      "move": "hold",
+      "at": "2026-11-13T00:33:59+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 5,
+      "price_idr": 447,
+      "message": "Still too low. 447 is fair.",
+      "mood": "Brief, firm, slightly impatient",
+      "at": "2026-11-13T00:34:01+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 6,
+      "offer_idr": 360,
+      "requested_offer_idr": 360,
+      "message": "Thanks—I understand, but I’m still at $360 if it’s fully functional and ready to meet. If that works, I can wrap this up quickly.",
+      "reasoning": "Round 6/8 with 2 left. Seller has made no concession from 447 after repeated holds. Late stage favors holding; target is 360 and ask is far above target.",
+      "move": "hold",
+      "at": "2026-11-13T00:34:04+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 6,
+      "price_idr": 447,
+      "message": "Still too low. 447 is fair.",
+      "mood": "Brief, firm, slightly impatient",
+      "at": "2026-11-13T00:34:05+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 7,
+      "offer_idr": 360,
+      "requested_offer_idr": 360,
+      "message": "Thanks, but I’m still at $360 if it’s fully functional and ready to meet. If that works, I can complete the purchase promptly.",
+      "reasoning": "Round 7 of 8; seller unchanged at 447 for six rounds and far above target/ceiling. Late round, so hold rather than make a token raise that won’t close gap.",
+      "move": "hold",
+      "at": "2026-11-13T00:34:08+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 7,
+      "price_idr": 447,
+      "message": "Still too low. 447 is fair.",
+      "mood": "Brief, firm, slightly impatient",
+      "at": "2026-11-13T00:34:09+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 8,
+      "offer_idr": 360,
+      "requested_offer_idr": 360,
+      "message": "Thanks for the replies. I’m still at $360 if it’s fully functional and ready to meet. If that works, I can complete it promptly.",
+      "reasoning": "Final round. Seller held at 447 throughout; no real concession. Gap from 360 remains too large to close. Hold at target rather than chase.",
+      "move": "hold",
+      "at": "2026-11-13T00:34:12+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 8,
+      "price_idr": 447,
+      "message": "No, still too low. 447 is fair.",
+      "mood": "Brief, firm, slightly impatient",
+      "at": "2026-11-13T00:34:14+00:00"
+    },
+    {
+      "type": "outcome",
+      "outcome": "no_deal",
+      "final_price_idr": null,
+      "list_idr": 450,
+      "saved_idr": null,
+      "rounds_used": 8,
+      "last_seller_ask_idr": 447,
+      "last_buyer_offer_idr": 360,
+      "gap_idr": 87,
+      "usage": {
+        "buyer": {
+          "calls": 8,
+          "prompt_tokens": 8802,
+          "completion_tokens": 653
+        },
+        "seller": {
+          "calls": 8,
+          "prompt_tokens": 7983,
+          "completion_tokens": 272
+        }
+      },
+      "total_tokens": 17710,
+      "at": "2026-11-13T00:34:14+00:00"
+    }
+  ],
+  "finished_at": "2026-11-13T00:34:14+00:00",
+  "outcome": "no_deal"
+}

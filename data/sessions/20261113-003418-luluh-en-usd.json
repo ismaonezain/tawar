@@ -1,0 +1,194 @@
+{
+  "session_id": "20261113-003418-luluh-en-usd",
+  "started_at": "2026-11-13T00:34:18+00:00",
+  "lang": "en",
+  "currency": "USD",
+  "item": "Secondhand iPhone 12 128GB",
+  "seller_key": "luluh",
+  "seller_name": "Bu Luluh",
+  "list_idr": 450,
+  "target_idr": 360,
+  "ceiling_idr": 390,
+  "max_rounds": 8,
+  "buyer_model": "serv-pro",
+  "seller_model": "serv-mini",
+  "events": [
+    {
+      "type": "session_start",
+      "seller_floor_hidden": true,
+      "note": "seller floor and buyer ceiling are never shared across sides",
+      "at": "2026-11-13T00:34:18+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 1,
+      "offer_idr": 360,
+      "requested_offer_idr": 360,
+      "message": "Hi! I can do $360 for the iPhone 12 128GB if you’re ready to sell.",
+      "reasoning": "List 450, target 360, seller ask 450. Opening at target is appropriate in round 1 with room to negotiate later.",
+      "move": "open",
+      "at": "2026-11-13T00:34:20+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 1,
+      "price_idr": 425,
+      "message": "Hi, thanks for your offer. The phone is still in very good condition, so I can do $425 for you.",
+      "mood": "warm but cautious",
+      "at": "2026-11-13T00:34:22+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 2,
+      "offer_idr": 365,
+      "requested_offer_idr": 365,
+      "message": "Thanks for the quick reply. I appreciate it, but $425 is still higher than I can do. I can come up a bit to $365 if that helps, and I can move forward promptly.",
+      "reasoning": "Ask 425 vs target 360. Early round, warm seller. Small whole-dollar concession of +5 keeps leverage and leaves room for later shrinking moves.",
+      "move": "concede",
+      "at": "2026-11-13T00:34:25+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 2,
+      "price_idr": 425,
+      "message": "Thanks for being polite and quick. I can come down a little, but $425 is still my best for now. The phone is well kept and ready to go.",
+      "mood": "warm but cautious",
+      "at": "2026-11-13T00:34:27+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 3,
+      "offer_idr": 365,
+      "requested_offer_idr": 365,
+      "message": "Thanks for the update. I’m still at $365 for now. If that works for you, I can move forward promptly.",
+      "reasoning": "Current ask 425 unchanged after prior hold; round 3 of 8 with ample time left. Hold once after small opening concession; target 360, current offer 365.",
+      "move": "hold",
+      "at": "2026-11-13T00:34:29+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 3,
+      "price_idr": 410,
+      "message": "Thanks for staying patient and easy to talk to. I can come down to $410 for you. The phone is still well kept and ready to go.",
+      "mood": "warm and a little softened",
+      "at": "2026-11-13T00:34:31+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 4,
+      "offer_idr": 370,
+      "requested_offer_idr": 370,
+      "message": "Thanks for coming down. I’m still pretty limited on budget, but I can do $370 if that helps. If that works, I’m ready to move forward.",
+      "reasoning": "Ask dropped 15; moderate concession justified. Raise by 5 from 365 to 370, still near target and keeps room for later rounds.",
+      "move": "concede",
+      "at": "2026-11-13T00:34:34+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 4,
+      "price_idr": 390,
+      "message": "Thanks, I appreciate your patience. I can come down to $390 for you. The phone is still in very good shape and ready to go.",
+      "mood": "warm and softened",
+      "at": "2026-11-13T00:34:36+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 5,
+      "offer_idr": 370,
+      "requested_offer_idr": 370,
+      "message": "Thanks for coming down. I’m still limited on budget, so I need to stay at $370 for now. If that works for you, I’m ready to move forward.",
+      "reasoning": "Current ask 390 vs target 360. Round 5 with 3 left; not late enough for final-step exception. Hold after prior concession to 370.",
+      "move": "hold",
+      "at": "2026-11-13T00:34:39+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 5,
+      "price_idr": 390,
+      "message": "Thanks for your patience. I can meet you at $390 for this phone. It’s still in very good condition and ready to go.",
+      "mood": "warm and softened",
+      "at": "2026-11-13T00:34:41+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 6,
+      "offer_idr": 370,
+      "requested_offer_idr": 370,
+      "message": "Thanks for meeting me partway. I’m still capped at $370 on this one, so I need to stay there. If that works for you, I’m ready to move forward today.",
+      "reasoning": "Round 6/8 with 2 left. Seller at 390, target 360, current offer 370. Late rounds favor hold; seller is above target and not within one smallest final step, so no acceptance. Hold once more.",
+      "move": "hold",
+      "at": "2026-11-13T00:34:44+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 6,
+      "price_idr": 390,
+      "message": "Thanks for being patient and easy to talk to. I can come down to $390 for you. The phone is still well kept and ready to go.",
+      "mood": "warm and softened",
+      "at": "2026-11-13T00:34:46+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 7,
+      "offer_idr": 370,
+      "requested_offer_idr": 370,
+      "message": "Thanks for working with me. I’m still at $370 for this one, and if that works I can move forward right away.",
+      "reasoning": "Late round with 1 round left. Seller held at 390 repeatedly; target is 360 and current offer is 370. Seller is not within one smallest final step, so hold rather than chase.",
+      "move": "hold",
+      "at": "2026-11-13T00:34:49+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 7,
+      "price_idr": 390,
+      "message": "Thanks for being patient and kind. I can do $390 for you, and the phone is still well kept and ready to go.",
+      "mood": "warm and softened",
+      "at": "2026-11-13T00:34:50+00:00"
+    },
+    {
+      "type": "buyer_offer",
+      "round": 8,
+      "offer_idr": 370,
+      "requested_offer_idr": 370,
+      "message": "Thanks for working with me. I’m still at $370 for this one, and if that works I can move forward right away.",
+      "reasoning": "Final round. Seller at 390 remains 20 above current offer and above target 360. Not within a smallest final step, so hold rather than accept or jump.",
+      "move": "hold",
+      "at": "2026-11-13T00:34:53+00:00"
+    },
+    {
+      "type": "seller_reply",
+      "round": 8,
+      "price_idr": 390,
+      "message": "Thanks for working with me. I can do $390 for you, and the phone is still well kept and ready to go.",
+      "mood": "warm and softened",
+      "at": "2026-11-13T00:34:54+00:00"
+    },
+    {
+      "type": "outcome",
+      "outcome": "no_deal",
+      "final_price_idr": null,
+      "list_idr": 450,
+      "saved_idr": null,
+      "rounds_used": 8,
+      "last_seller_ask_idr": 390,
+      "last_buyer_offer_idr": 370,
+      "gap_idr": 20,
+      "usage": {
+        "buyer": {
+          "calls": 8,
+          "prompt_tokens": 9230,
+          "completion_tokens": 689
+        },
+        "seller": {
+          "calls": 8,
+          "prompt_tokens": 8492,
+          "completion_tokens": 410
+        }
+      },
+      "total_tokens": 18821,
+      "at": "2026-11-13T00:34:54+00:00"
+    }
+  ],
+  "finished_at": "2026-11-13T00:34:54+00:00",
+  "outcome": "no_deal"
+}
