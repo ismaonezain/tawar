@@ -1,0 +1,22 @@
+{
+  "name": "tawar-demo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio src/index.ts",
+    "build": "remotion render src/index.ts PresidenDisadap out/presiden-disadap.mp4 --codec=h264 --crf=16 --pixel-format=yuv420p",
+    "still": "remotion still src/index.ts PresidenDisadap out/frame.png --frame=60",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.540",
+    "@remotion/google-fonts": "^4.0.540",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.540"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.3",
+    "typescript": "5.5.4"
+  }
+}
