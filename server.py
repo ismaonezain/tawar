@@ -23,6 +23,7 @@ import sys
 import threading
 import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import unquote
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SESSIONS_DIR = os.path.join(ROOT, "data", "sessions")
@@ -115,6 +116,24 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):  # quieter logs
         sys.stderr.write("[tawar] %s\n" % (fmt % args))
 
+    def send_head(self):
+        # The static handler serves the whole project root, and the agent
+        # key record (data/agent-key.json) sits inside it. The seed must
+        # never leave this machine, so any path whose final component is
+        # agent-key.json is refused with a plain JSON 404, exactly like a
+        # file that does not exist.
+        raw = unquote(self.path.split("?")[0].split("#")[0])
+        if os.path.basename(raw.rstrip("/")) == "agent-key.json":
+            body = json.dumps({"error": "not found"}).encode("utf-8")
+            self.send_response(404)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(body)
+            return None
+        return super().send_head()
+
     def _send_json(self, code, obj):
         body = json.dumps(obj).encode("utf-8")
         self.send_response(code)
@@ -133,8 +152,13 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         path = self.path.split("?")[0]
         if path == "/halt":
-            with open(HALT_PATH, "w") as f:
-                f.write(str(time.time()))
+            try:
+                with open(HALT_PATH, "w") as f:
+                    f.write(str(time.time()))
+            except OSError as exc:
+                self._send_json(500, {"error": "could not write the "
+                                              f"halt flag: {exc}"})
+                return
             self._send_json(200, {"halted": True})
             return
         if path == "/run":

@@ -379,8 +379,29 @@
 
   function updateIntegrityBar() {
     var s = state.session;
-    var has = !!(s && Array.isArray(s.events) && s.events.some(function (e) { return e.h; }));
-    el.integrityBar.hidden = !has;
+    if (!s) { el.integrityBar.hidden = true; return; }
+    var label = el.integrityBar.querySelector(".integrity-label");
+    var hasChain = Array.isArray(s.events) &&
+      s.events.some(function (e) { return e.h; });
+    el.integrityBar.hidden = false;
+    if (hasChain) {
+      if (label) {
+        label.innerHTML = "<strong>Transcript integrity</strong>" +
+          " · hash-chained to a signed mandate";
+      }
+      el.btnVerify.hidden = false;
+    } else {
+      if (label) {
+        label.innerHTML = "<strong>Transcript integrity</strong>" +
+          " · not recorded for this session";
+      }
+      el.btnVerify.hidden = true;
+      el.integrityResult.classList.remove("bad");
+      el.integrityResult.textContent =
+        "No signed mandate or hash chain was recorded for this " +
+        "session (it predates the credibility layer, or is a " +
+        "scripted sample), so there is nothing to verify.";
+    }
   }
 
   /* ---------- transcript rendering ---------- */
@@ -621,79 +642,288 @@
     if (scroll) b.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
-  /* ---------- hash-chain verification ---------- */
+  /* ---------- transcript credibility verification ---------- */
+  /* === TAWAR-VERIFY-BEGIN === */
+  /* Mirrors src/engine.py exactly:
+       canonical JSON = compact JSON, object keys sorted at every depth,
+         non-ASCII characters left raw (the engine's canonical_json);
+       mandate hash   = sha256 hex of the canonical JSON of the mandate's
+         MANDATE_HASH_FIELDS subset;
+       event hash "h" = sha256 hex of (prev_h + canonical JSON of the event
+         without "h"), where the first prev_h is the mandate hash;
+       session.chain_head must equal the final event hash.
+     Hashes are compared in full, never by prefix. When the mandate carries
+     an Ed25519 signature it is verified here, in the browser, over the raw
+     mandate-hash bytes against mandate.agent_pubkey (RFC 8032, pure JS). */
+  var TawarVerify = (function () {
+    var MANDATE_HASH_FIELDS = ["item", "list_idr", "target_idr",
+      "ceiling_idr", "currency", "lang", "issued_at", "expires_at",
+      "agent_id", "agent_pubkey"];
+    var subtle = (typeof crypto !== "undefined" && crypto.subtle)
+      ? crypto.subtle : null;
 
-  function stableStringify(o) {
-    if (o === null || typeof o !== "object") return JSON.stringify(o);
-    if (Array.isArray(o)) return "[" + o.map(stableStringify).join(",") + "]";
-    var keys = Object.keys(o).sort();
-    return "{" + keys.map(function (k) {
-      return JSON.stringify(k) + ":" + stableStringify(o[k]);
-    }).join(",") + "}";
-  }
-  function sha256Hex(str) {
-    if (window.crypto && crypto.subtle) {
-      return crypto.subtle.digest("SHA-256", new TextEncoder().encode(str)).then(function (buf) {
+    function canonicalJson(o) {
+      if (o === null || typeof o !== "object") return JSON.stringify(o);
+      if (Array.isArray(o)) {
+        return "[" + o.map(canonicalJson).join(",") + "]";
+      }
+      var keys = Object.keys(o).sort();
+      return "{" + keys.map(function (k) {
+        return JSON.stringify(k) + ":" + canonicalJson(o[k]);
+      }).join(",") + "}";
+    }
+    function digestHex(algo, bytes) {
+      if (!subtle) return Promise.resolve(null);
+      return subtle.digest(algo, bytes).then(function (buf) {
         return Array.prototype.map.call(new Uint8Array(buf), function (x) {
           return ("0" + x.toString(16)).slice(-2);
         }).join("");
       });
     }
-    return Promise.resolve(null);
-  }
-  function hashMatches(computed, stored) {
-    if (!computed || !stored) return false;
-    var st = String(stored).toLowerCase().replace(/^0x/, "");
-    return computed === st || computed.indexOf(st) === 0 || st.indexOf(computed.slice(0, 16)) === 0;
-  }
-  el.btnVerify.addEventListener("click", function () {
-    var s = state.session;
-    if (!s) return;
-    var hashed = s.events.filter(function (e) { return e.h; });
-    if (!hashed.length) { el.integrityBar.hidden = true; return; }
-    el.integrityResult.textContent = "verifying…";
-    el.integrityResult.classList.remove("bad");
-    /* Try the plausible chain recipes; a full pass under any one of
-       them counts as verified. */
-    var recipes = [
-      function (prev, ev, raw) { return prev + stableStringify(raw); },
-      function (prev, ev, raw) { return stableStringify(raw) + prev; },
-      function (prev, ev, raw) { return prev + JSON.stringify(raw); }
-    ];
-    var genesisOptions = ["", "GENESIS", "tawar-genesis"];
-    function tryRecipe(ri, gi) {
-      if (ri >= recipes.length) {
-        if (gi + 1 < genesisOptions.length) return tryRecipe(0, gi + 1);
-        return Promise.resolve(false);
+    function sha256Hex(str) {
+      return digestHex("SHA-256", new TextEncoder().encode(str));
+    }
+    function hexToBytes(hex) {
+      var out = new Uint8Array(hex.length / 2);
+      for (var i = 0; i < out.length; i++) {
+        out[i] = parseInt(hex.substr(i * 2, 2), 16);
       }
-      var prev = genesisOptions[gi];
-      var chain = Promise.resolve(true);
-      hashed.forEach(function (ev) {
-        chain = chain.then(function (ok) {
-          if (!ok) return false;
-          var raw = {};
-          /* verify against the raw event as loaded, minus chain fields */
-          var src = ev._raw || ev;
-          Object.keys(src).forEach(function (k) {
-            if (k !== "h" && k !== "hash" && k !== "_raw") raw[k] = src[k];
+      return out;
+    }
+
+    /* --- Ed25519 signature verification (RFC 8032), pure JS / BigInt.
+       Points are kept in extended coordinates (X, Y, T, Z). --- */
+    var P = (1n << 255n) - 19n;
+    var L = (1n << 252n) + 27742317777372353535851937790883648493n;
+    var D = null, SQRT_M1 = null, BASE = null;
+    function modP(a) { var r = a % P; return r >= 0n ? r : r + P; }
+    function modPow(b, e) {
+      var r = 1n; b = modP(b);
+      while (e > 0n) {
+        if (e & 1n) r = modP(r * b);
+        b = modP(b * b); e >>= 1n;
+      }
+      return r;
+    }
+    function modInv(a) { return modPow(a, P - 2n); }
+    function bytesToIntLE(bytes) {
+      var v = 0n;
+      for (var i = bytes.length - 1; i >= 0; i--) {
+        v = (v << 8n) | BigInt(bytes[i]);
+      }
+      return v;
+    }
+    function edInit() {
+      if (D !== null) return;
+      D = modP(-121665n * modInv(121666n));
+      SQRT_M1 = modPow(2n, (P - 1n) / 4n);
+      BASE = pointDecode(hexToBytes(
+        "5866666666666666666666666666666666666666666666666666666666666666"));
+    }
+    function pointDecode(bytes) {
+      if (!bytes || bytes.length !== 32) return null;
+      var yb = Uint8Array.from(bytes);
+      var sign = (yb[31] >> 7) & 1;
+      yb[31] &= 0x7f;
+      var y = bytesToIntLE(yb);
+      if (y >= P) return null;
+      var y2 = modP(y * y);
+      var xx = modP((y2 - 1n) * modInv(modP(D * y2 + 1n)));
+      var x = modPow(xx, (P + 3n) / 8n);
+      if (modP(x * x - xx) !== 0n) {
+        x = modP(x * SQRT_M1);
+        if (modP(x * x - xx) !== 0n) return null;
+      }
+      if (Number(x & 1n) !== sign) x = P - x;
+      return { X: x, Y: y, T: modP(x * y), Z: 1n };
+    }
+    function pointAdd(p, q) {
+      var a = modP((p.Y - p.X) * (q.Y - q.X));
+      var b = modP((p.Y + p.X) * (q.Y + q.X));
+      var c = modP(2n * D * p.T * q.T);
+      var d = modP(2n * p.Z * q.Z);
+      var e = modP(b - a), f = modP(d - c), g = modP(d + c), h = modP(b + a);
+      return { X: modP(e * f), Y: modP(g * h), T: modP(e * h), Z: modP(f * g) };
+    }
+    function pointDouble(p) {
+      var a = modP(p.X * p.X), b = modP(p.Y * p.Y), c = modP(2n * p.Z * p.Z);
+      var d = modP(-a);
+      var e = modP(modP(p.X + p.Y) * modP(p.X + p.Y) - a - b);
+      var g = modP(d + b), f = modP(g - c), h = modP(d - b);
+      return { X: modP(e * f), Y: modP(g * h), T: modP(e * h), Z: modP(f * g) };
+    }
+    function pointMul(pt, scalar) {
+      var acc = { X: 0n, Y: 1n, T: 0n, Z: 1n };
+      var bits = scalar.toString(2);
+      for (var i = 0; i < bits.length; i++) {
+        acc = pointDouble(acc);
+        if (bits[i] === "1") acc = pointAdd(acc, pt);
+      }
+      return acc;
+    }
+    function pointsEqual(p, q) {
+      return modP(p.X * q.Z - q.X * p.Z) === 0n &&
+             modP(p.Y * q.Z - q.Y * p.Z) === 0n;
+    }
+    function ed25519Verify(pubBytes, sigBytes, msgBytes) {
+      /* Returns a Promise of true / false / null (cannot run here). */
+      if (typeof BigInt === "undefined" || !subtle) {
+        return Promise.resolve(null);
+      }
+      try {
+        edInit();
+        if (!pubBytes || pubBytes.length !== 32 ||
+            !sigBytes || sigBytes.length !== 64) {
+          return Promise.resolve(false);
+        }
+        var aPoint = pointDecode(pubBytes);
+        var rPoint = pointDecode(sigBytes.subarray(0, 32));
+        var s = bytesToIntLE(sigBytes.subarray(32, 64));
+        if (!aPoint || !rPoint || s >= L) return Promise.resolve(false);
+        var hInput = new Uint8Array(64 + msgBytes.length);
+        hInput.set(sigBytes.subarray(0, 32), 0);
+        hInput.set(pubBytes, 32);
+        hInput.set(msgBytes, 64);
+        return subtle.digest("SHA-512", hInput).then(function (buf) {
+          var k = bytesToIntLE(new Uint8Array(buf)) % L;
+          var left = pointMul(BASE, s);
+          var right = pointAdd(rPoint, pointMul(aPoint, k));
+          return pointsEqual(left, right);
+        }).catch(function () { return null; });
+      } catch (err) {
+        return Promise.resolve(null);
+      }
+    }
+
+    /* Verify one session object (raw engine schema: session.mandate,
+       session.events with "h", session.chain_head). Resolves to:
+       { status: "none" }                       nothing recorded to check
+       { status: "ok", events, signature }      signature: "valid" |
+         "hmac-demo" | "unavailable" | "absent"
+       { status: "fail", detail }               exact, human-readable */
+    function verifySession(session) {
+      var events = (session && Array.isArray(session.events)
+        ? session.events : []).map(function (e) { return (e && e._raw) || e; });
+      var hashed = events.filter(function (e) { return e && e.h; });
+      if (!hashed.length) return Promise.resolve({ status: "none" });
+      var m = (session.mandate && typeof session.mandate === "object")
+        ? session.mandate : null;
+      if (!m || !m.hash) {
+        return Promise.resolve({ status: "fail", detail:
+          "this session carries a hash chain but no signed mandate to " +
+          "anchor it to, so the chain cannot be verified" });
+      }
+      var subset = {};
+      for (var i = 0; i < MANDATE_HASH_FIELDS.length; i++) {
+        var f = MANDATE_HASH_FIELDS[i];
+        if (!(f in m)) {
+          return Promise.resolve({ status: "fail", detail:
+            "the mandate is missing its hashed field \"" + f + "\"" });
+        }
+        subset[f] = m[f];
+      }
+      return sha256Hex(canonicalJson(subset)).then(function (recomputed) {
+        if (recomputed === null) {
+          return { status: "fail", detail:
+            "SHA-256 is unavailable in this browser, so nothing could " +
+            "be recomputed" };
+        }
+        if (recomputed !== String(m.hash).toLowerCase()) {
+          return { status: "fail", detail:
+            "the mandate contents do not recompute to the mandate hash " +
+            "recorded in the session" };
+        }
+        var sigPromise;
+        if (m.signature_scheme === "ed25519" && m.signature &&
+            m.agent_pubkey) {
+          sigPromise = ed25519Verify(hexToBytes(m.agent_pubkey),
+            hexToBytes(m.signature), hexToBytes(m.hash))
+            .then(function (v) {
+              return v === null ? "unavailable" : (v ? "valid" : "invalid");
+            });
+        } else if (m.signature_scheme === "hmac-demo") {
+          sigPromise = Promise.resolve("hmac-demo");
+        } else {
+          sigPromise = Promise.resolve("absent");
+        }
+        return sigPromise.then(function (sigState) {
+          if (sigState === "invalid") {
+            return { status: "fail", detail:
+              "the mandate Ed25519 signature does not validate against " +
+              "the agent public key recorded in the mandate" };
+          }
+          var prev = String(m.hash).toLowerCase();
+          var chain = Promise.resolve(null);
+          hashed.forEach(function (ev, idx) {
+            chain = chain.then(function (failDetail) {
+              if (failDetail) return failDetail;
+              var body = {};
+              Object.keys(ev).forEach(function (k) {
+                if (k !== "h") body[k] = ev[k];
+              });
+              return sha256Hex(prev + canonicalJson(body))
+                .then(function (c) {
+                  if (c !== String(ev.h).toLowerCase()) {
+                    return "the hash chain breaks at event " +
+                      (idx + 1) + " of " + hashed.length;
+                  }
+                  prev = String(ev.h).toLowerCase();
+                  return null;
+                });
+            });
           });
-          return sha256Hex(recipes[ri](prev, ev, raw)).then(function (c) {
-            if (hashMatches(c, ev.h)) { prev = String(ev.h); return true; }
-            return false;
+          return chain.then(function (failDetail) {
+            if (failDetail) return { status: "fail", detail: failDetail };
+            if (session.chain_head &&
+                prev !== String(session.chain_head).toLowerCase()) {
+              return { status: "fail", detail:
+                "the re-walked chain does not reach the chain head " +
+                "recorded in the session" };
+            }
+            return { status: "ok", events: hashed.length,
+                     signature: sigState };
           });
         });
       });
-      return chain.then(function (ok) { return ok ? true : tryRecipe(ri + 1, gi); });
     }
-    tryRecipe(0, 0).then(function (ok) {
-      if (ok) {
-        el.integrityResult.textContent = "Chain verified · " + hashed.length + " events";
-        el.integrityResult.classList.remove("bad");
-      } else {
-        el.integrityResult.textContent = "Chain present · " + hashed.length +
-          " hashed events · could not reproduce the chain with the known recipes";
-        el.integrityResult.classList.add("bad");
+    return { verifySession: verifySession,
+             canonicalJson: canonicalJson, sha256Hex: sha256Hex,
+             ed25519Verify: ed25519Verify, hexToBytes: hexToBytes };
+  })();
+  /* === TAWAR-VERIFY-END === */
+  el.btnVerify.addEventListener("click", function () {
+    var s = state.session;
+    if (!s) return;
+    el.integrityResult.classList.remove("bad");
+    el.integrityResult.textContent = "verifying…";
+    TawarVerify.verifySession(s).then(function (res) {
+      if (res.status === "none") {
+        el.integrityResult.textContent =
+          "No signed mandate or hash chain was recorded for this " +
+          "session, so there is nothing to verify.";
+        return;
       }
+      if (res.status === "ok") {
+        var txt = "Verified · mandate hash recomputed";
+        if (res.signature === "valid") {
+          txt += " · Ed25519 mandate signature valid";
+        }
+        txt += " · hash chain of " + res.events +
+          " events re-walked to the recorded chain head";
+        if (res.signature === "hmac-demo") {
+          txt += " · the mandate signature itself uses the HMAC demo " +
+            "scheme and is not publicly checkable";
+        } else if (res.signature === "unavailable") {
+          txt += " · signature check unavailable in this browser";
+        } else if (res.signature === "absent") {
+          txt += " · the mandate carries no signature to check";
+        }
+        el.integrityResult.textContent = txt;
+        el.integrityResult.classList.remove("bad");
+        return;
+      }
+      el.integrityResult.textContent = "Verification failed · " + res.detail;
+      el.integrityResult.classList.add("bad");
     });
   });
 
